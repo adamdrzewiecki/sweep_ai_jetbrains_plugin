@@ -88,10 +88,12 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("241")
-        // untilBuild intentionally unset — fork is rebuilt on demand for newer
-        // IDE builds, so we do not want the IDE to refuse to load the plugin
-        // based on a hardcoded upper bound.
-        // untilBuild.set("253.*")
+        // Explicitly clear untilBuild. Without this, the IntelliJ Platform
+        // Gradle Plugin auto-populates it from the runtime dependency's
+        // build number (so plugin.xml would end up with until-build="251.*"
+        // even if we commented out untilBuild.set(...)). Setting the provider
+        // to null tells the plugin to omit until-build from idea-version.
+        untilBuild.set(provider<String?> { null })
     }
 
     signPlugin {
