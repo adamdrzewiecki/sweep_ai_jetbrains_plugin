@@ -66,6 +66,14 @@ class LocalAutocompleteServerManager : Disposable {
     }
 
     fun ensureServerRunning(onStatus: ((String) -> Unit)?) {
+        // External-server mode: assume the server on autocompleteLocalPort
+        // is managed outside the plugin (e.g. sweeper-server started from
+        // a separate terminal). Skip uvx auto-start entirely.
+        if (SweepSettings.getInstance().useExternalLocalServer) {
+            onStatus?.invoke("External server mode — skipping auto-start")
+            logger.info("External server mode: skipping ensureServerRunning")
+            return
+        }
         onStatus?.invoke("Checking if server is already running...")
         if (isServerHealthy()) {
             onStatus?.invoke("Server is already running.")
@@ -327,6 +335,10 @@ class LocalAutocompleteServerManager : Disposable {
     }
 
     fun restartServer() {
+        if (SweepSettings.getInstance().useExternalLocalServer) {
+            logger.info("External server mode: skipping restartServer")
+            return
+        }
         logger.info("Restarting local autocomplete server")
         lastRestartTime = System.currentTimeMillis()
         stopServer()
@@ -359,6 +371,10 @@ class LocalAutocompleteServerManager : Disposable {
      * If the server is already healthy, does nothing.
      */
     fun startServerInTerminal(project: Project) {
+        if (SweepSettings.getInstance().useExternalLocalServer) {
+            logger.info("External server mode: skipping startServerInTerminal")
+            return
+        }
         if (isServerHealthy()) {
             logger.info("Local autocomplete server is already running")
             return

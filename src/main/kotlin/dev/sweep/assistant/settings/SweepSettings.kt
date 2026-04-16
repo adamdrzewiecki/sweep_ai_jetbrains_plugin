@@ -180,6 +180,26 @@ class SweepSettings : PersistentStateComponent<SweepSettings> {
 
     var autocompleteLocalPort: Int = 8081
 
+    /**
+     * When true, LocalAutocompleteServerManager skips starting/restarting the
+     * bundled uvx-based server and assumes the server listening on
+     * autocompleteLocalPort is managed externally (e.g. sweeper-server run by
+     * the user from a separate terminal).
+     *
+     * The plugin still issues HTTP requests to localhost:autocompleteLocalPort
+     * as usual; only the lifecycle-management calls (ensureServerRunning,
+     * startServerInTerminal, restartServer) become no-ops.
+     */
+    var useExternalLocalServer: Boolean = true
+        set(value) {
+            if (value != field) {
+                field = value
+                notifySettingsChanged()
+            } else {
+                field = value
+            }
+        }
+
     fun ensureDefaultPromptsInitialized() {
         var addedPrompt = false
 

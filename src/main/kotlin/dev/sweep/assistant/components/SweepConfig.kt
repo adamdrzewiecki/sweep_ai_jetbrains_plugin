@@ -1047,6 +1047,12 @@ class SweepConfig(
         SweepSettings.getInstance().autocompleteLocalPort = port
     }
 
+    fun isUseExternalLocalServer(): Boolean = SweepSettings.getInstance().useExternalLocalServer
+
+    fun updateUseExternalLocalServer(enabled: Boolean) {
+        SweepSettings.getInstance().useExternalLocalServer = enabled
+    }
+
     // Autocomplete exclusion banner visibility
     fun isHideAutocompleteExclusionBanner(): Boolean = state.hideAutocompleteExclusionBanner
 
@@ -4829,11 +4835,37 @@ class SweepConfig(
                                 )
                                 add(Box.createRigidArea(Dimension(0, 2.scaled)))
                                 add(
-                                    JLabel("Runs autocomplete locally via 'uvx sweep-autocomplete'. Will auto-install uv if needed.").apply {
+                                    JLabel("Sends autocomplete requests to a local HTTP server on the configured port.").apply {
                                         withSweepFont(project, scale = 0.85f)
                                         foreground = JBColor.GRAY
                                         font = font.deriveFont(Font.ITALIC)
                                         border = JBUI.Borders.emptyLeft(24)
+                                    },
+                                )
+                                add(Box.createRigidArea(Dimension(0, 6.scaled)))
+                                add(
+                                    JCheckBox("Use externally managed server (skip uvx auto-start)").apply {
+                                        isSelected = isUseExternalLocalServer()
+                                        withSweepFont(project)
+                                        border = JBUI.Borders.emptyLeft(16)
+                                        toolTipText = (
+                                            "When enabled, the plugin assumes a server is already running on "
+                                            + "the configured port (e.g. started from a terminal) and skips "
+                                            + "calling 'uvx sweep-autocomplete'. Enable this when running a "
+                                            + "custom backend such as sweeper-server."
+                                        )
+                                        addActionListener {
+                                            updateUseExternalLocalServer(isSelected)
+                                        }
+                                    },
+                                )
+                                add(Box.createRigidArea(Dimension(0, 2.scaled)))
+                                add(
+                                    JLabel("Off: plugin starts 'uvx sweep-autocomplete' in a terminal (auto-installs uv if needed).").apply {
+                                        withSweepFont(project, scale = 0.85f)
+                                        foreground = JBColor.GRAY
+                                        font = font.deriveFont(Font.ITALIC)
+                                        border = JBUI.Borders.emptyLeft(40)
                                     },
                                 )
                             },
@@ -4874,6 +4906,12 @@ class SweepConfig(
                                 add(
                                     JButton("Start Server", AllIcons.Actions.Execute).apply {
                                         withSweepFont(project)
+                                        isEnabled = !isUseExternalLocalServer()
+                                        toolTipText =
+                                            if (isUseExternalLocalServer())
+                                                "Disabled: 'Use externally managed server' is on. Start the server manually instead."
+                                            else
+                                                "Start 'uvx sweep-autocomplete' in a terminal tab."
                                         addActionListener {
                                             LocalAutocompleteServerManager.getInstance().startServerInTerminal(project)
                                         }
