@@ -41,7 +41,8 @@ intellijPlatform {
                 types.set(listOf(IntelliJPlatformType.WebStorm))
                 channels.set(listOf(ProductRelease.Channel.RELEASE))
                 sinceBuild.set("242")
-                untilBuild.set("243.*")
+                // untilBuild intentionally unset — fork tracks latest IDE builds
+                // untilBuild.set("243.*")
             }
 //            select {
 //                types.set(listOf(IntelliJPlatformType.DataGrip))
@@ -67,7 +68,8 @@ intellijPlatform {
                 )
                 channels.set(listOf(ProductRelease.Channel.RELEASE))
                 sinceBuild.set("241")
-                untilBuild.set("253.*")
+                // untilBuild intentionally unset — fork tracks latest IDE builds
+                // untilBuild.set("253.*")
             }
         }
     }
@@ -86,7 +88,10 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("241")
-        untilBuild.set("253.*")
+        // untilBuild intentionally unset — fork is rebuilt on demand for newer
+        // IDE builds, so we do not want the IDE to refuse to load the plugin
+        // based on a hardcoded upper bound.
+        // untilBuild.set("253.*")
     }
 
     signPlugin {
