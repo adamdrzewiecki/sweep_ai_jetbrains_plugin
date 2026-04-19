@@ -48,7 +48,11 @@ class AutocompleteIpResolverService(
         private const val HOSTNAME = "autocomplete.sweep.dev"
         private const val RESOLUTION_INTERVAL_MS = 15_000L
         private const val HEALTH_CHECK_INTERVAL_MS = 25_000L // Just under 30 seconds
-        private const val READ_TIMEOUT_MS = 10_000L
+        // 10s was fine for Sweep's cloud H100 stack; a local MLX 7B server on
+        // Apple Silicon routinely needs 8–15s for the first request (cold KV
+        // cache, large prompt). Bumped to 60s so fork users don't lose
+        // suggestions to premature client-side timeouts.
+        private const val READ_TIMEOUT_MS = 60_000L
         private const val USER_ACTIVITY_TIMEOUT_MS = 15 * 60 * 1000L // 15 minutes
     }
 

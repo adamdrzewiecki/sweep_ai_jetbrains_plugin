@@ -18,7 +18,7 @@ val pluginId = "dev.sweep.assistant"
 val pluginName = "Self-Hosted Enterprise Updater"
 println("Building plugin: $pluginName with ID: $pluginId")
 group = "dev.sweep"
-version = "1.29.3-sweeper.1"
+version = "1.29.3-sweeper.2"
 
 repositories {
     mavenCentral()
