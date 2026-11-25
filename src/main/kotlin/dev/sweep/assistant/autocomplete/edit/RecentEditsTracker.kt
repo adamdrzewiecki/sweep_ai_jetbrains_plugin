@@ -817,8 +817,13 @@ class RecentEditsTracker(
                     return@DocumentChangeListenerAdapter
                 }
 
-                // Otherwise clear current autocomplete and fire autocomplete
-                clearAutocomplete(AutocompleteDisposeReason.CLEARING_PREVIOUS_AUTOCOMPLETE)
+                // Otherwise clear current autocomplete and fire autocomplete.
+                // Sweeper fork: pass what was typed, so typing the suggestion by hand
+                // isn't recorded as a rejection (see AutocompleteRejectionCache).
+                clearAutocomplete(
+                    AutocompleteDisposeReason.CLEARING_PREVIOUS_AUTOCOMPLETE,
+                    typedText = event.newFragment.toString(),
+                )
 
                 val editorState = getCurrentEditorState() ?: return@DocumentChangeListenerAdapter
                 val newText = editorState.documentText
@@ -2371,13 +2376,16 @@ class RecentEditsTracker(
         }
     }
 
-    fun clearAutocomplete(autocompleteDisposeReason: AutocompleteDisposeReason) {
+    fun clearAutocomplete(
+        autocompleteDisposeReason: AutocompleteDisposeReason,
+        typedText: String? = null,
+    ) {
         currentSuggestion?.disposedTime = System.currentTimeMillis()
         if (currentSuggestion?.suggestionWasShownAtAll() == true) {
             AutocompleteMetricsTracker.getInstance(project).trackSuggestionDisposed(currentSuggestion!!)
             AutocompleteRejectionCache
                 .getInstance(project)
-                .tryAddingRejectionToCache(currentSuggestion!!, autocompleteDisposeReason)
+                .tryAddingRejectionToCache(currentSuggestion!!, autocompleteDisposeReason, typedText)
         }
         currentSuggestion?.let { Disposer.dispose(it) }
         currentSuggestion = null

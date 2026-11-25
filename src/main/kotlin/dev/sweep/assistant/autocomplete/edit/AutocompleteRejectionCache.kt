@@ -14,6 +14,9 @@ class AutocompleteRejectionCache(
         fun getInstance(project: Project): AutocompleteRejectionCache = project.getService(AutocompleteRejectionCache::class.java)
 
         private const val REJECTION_THRESHOLD_FLAG = "autocomplete-rejection-cache-threshold-ms"
+
+        // Closing characters IntelliJ inserts by itself after the user types the opening one.
+        private val AUTO_CLOSED_CHARS = charArrayOf(')', ']', '}', '"', '\'', '>', '`')
     }
 
     private val shownCache = EvictingQueue<Pair<String, Long>>(maxSize = 20) // Cache for shown suggestions
@@ -52,6 +55,7 @@ class AutocompleteRejectionCache(
     fun tryAddingRejectionToCache(
         suggestion: AutocompleteSuggestion,
         reason: AutocompleteDisposeReason,
+        typedText: String? = null,
     ) {
         // ACCEPTED - do not add to rejection cache
         // IMPORT_FIX_SHOWN - do not add to rejection cache (import suggestions are context-specific)
@@ -71,6 +75,15 @@ class AutocompleteRejectionCache(
         }
         var shouldAddRejectionToCache = false
         if (suggestion.rejectionCacheKey() in acceptanceCache.map { it.first }) {
+            return
+        }
+
+        // Sweeper fork: the user is typing the suggestion by hand - not a rejection, and it
+        // shouldn't count towards the max-show limit either.
+        if (reason == AutocompleteDisposeReason.CLEARING_PREVIOUS_AUTOCOMPLETE &&
+            typedText != null &&
+            isTypedThroughSuggestion(suggestion, typedText)
+        ) {
             return
         }
 
@@ -112,6 +125,33 @@ class AutocompleteRejectionCache(
         // Add if the suggestion was shown and it's not already in the map
         if (shouldAddRejectionToCache && suggestion.rejectionCacheKey() !in rejectionCache.map { it.first }) {
             rejectionCache.add(Pair(suggestion.rejectionCacheKey(), System.currentTimeMillis()))
+        }
+    }
+
+    /**
+     * Sweeper fork: does [typedText] (the fragment of the edit that cleared the suggestion)
+     * agree with [suggestion]?
+     *
+     * Ghost text already follows exact character-by-character typing, but IntelliJ's own
+     * edits break the exact match: auto-closed brackets/quotes ("(" becomes "()"), and
+     * newline + auto-indent. Popup (replacement) suggestions don't follow typing at all.
+     * Without this, typing the suggested code by hand records it as a soft rejection and
+     * blocks the follow-up suggestions that contain it for 30 s.
+     *
+     * Deliberately lenient: a false "agrees" only means a suggestion may be shown again,
+     * which shownCache still limits; Escape remains a hard rejection.
+     */
+    private fun isTypedThroughSuggestion(
+        suggestion: AutocompleteSuggestion,
+        typedText: String,
+    ): Boolean {
+        // Whitespace-only edits (Enter + auto-indent) and deletions: not a rejection.
+        val typed = typedText.filterNot { it.isWhitespace() }.trimEnd(*AUTO_CLOSED_CHARS)
+        if (typed.isEmpty()) return true
+        val content = suggestion.content.filterNot { it.isWhitespace() }
+        return when (suggestion) {
+            is AutocompleteSuggestion.GhostTextSuggestion -> content.startsWith(typed)
+            else -> content.contains(typed)
         }
     }
 
